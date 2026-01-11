@@ -4,7 +4,6 @@ from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from task_notification.infrastructure.postgres.base import Base
-from task_notification.schemas.notification import NotificationStatus, NotificationType
 
 
 class Notification(Base):
@@ -18,8 +17,8 @@ class Notification(Base):
     )
     status: Mapped[str] = mapped_column(
         String(50),
-        default=NotificationStatus.PENDING.value,
-        server_default=NotificationStatus.PENDING.value,
+        default="pending",
+        server_default="pending",
     )
     recipient: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)

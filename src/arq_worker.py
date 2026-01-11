@@ -1,18 +1,15 @@
-"""ARQ Worker для обработки фоновых задач отправки уведомлений."""
+"""ARQ Worker с CRON задачами для отправки уведомлений."""
 
-import asyncio
-
-from arq import run_worker
+from arq import cron
 from arq.connections import RedisSettings
 
 from task_notification.core.config import settings
-from task_notification.domain.tasks.send_notification import send_notification_task
+from task_notification.domain.tasks.send_pending_notifications import send_pending_notifications_task
 
 
 class WorkerSettings:
-    """Настройки ARQ Worker."""
+    """Настройки ARQ Worker с CRON."""
 
-    queue_name = settings.ARQ_QUEUE_NAME
     redis_settings = RedisSettings(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT,
@@ -20,8 +17,12 @@ class WorkerSettings:
         password=settings.REDIS_PASSWORD,
     )
     allow_abort_jobs = True
-    functions = [send_notification_task]
-
-
-if __name__ == "__main__":
-    asyncio.run(run_worker(WorkerSettings))  # type: ignore
+    
+    # CRON задача - каждые 30 секунд
+    cron_jobs = [
+        cron(
+            send_pending_notifications_task,
+            name="send_pending_notifications",
+            second={0, 30},  # Каждые 30 секунд
+        ),
+    ]

@@ -13,3 +13,4 @@ greenlet==3.1.1
 arq==0.26.1
 redis==5.0.8
 tenacity==8.2.3
+aiosmtplib==3.0.2

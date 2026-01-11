@@ -37,3 +37,5 @@ class InvalidNotificationTypeError(BaseServiceException):
         self.message = self._ERROR_MESSAGE_TEMPLATE.format(notification_type=notification_type)
         super().__init__(self.message)
 
+
+

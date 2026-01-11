@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from task_notification.core.config import settings
 from task_notification.core.logger import get_logger, log
 from task_notification.core.providers.setup import config_container
-from task_notification.domain.use_cases.process_notification import ProcessNotificationUseCase
+from task_notification.domain.use_cases.create_notification import CreateNotificationUseCase
 from task_notification.schemas.notification import TaskNotificationMessage
 
 logger = get_logger(__name__)
@@ -34,7 +34,7 @@ router = RabbitRouter(**rabbit_config)
 @log(logger)
 async def task_event_subscriber(
     raw_event: dict,
-    use_case: FromDishka[ProcessNotificationUseCase],
+    use_case: FromDishka[CreateNotificationUseCase],
 ) -> None:
     """Обработать событие задачи из RabbitMQ."""
     try:
@@ -45,4 +45,4 @@ async def task_event_subscriber(
 
     logger.info(f"Received task event: task_id={message.task_id}, event={message.event_type}")
 
-    await use_case.process_task_event(message)
+    await use_case.execute(message)

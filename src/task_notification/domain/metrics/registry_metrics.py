@@ -45,3 +45,5 @@ NOTIFICATIONS_PENDING = Gauge(
 def setup_metrics(app: FastAPI) -> None:
     instrumentator.instrument(app)
 
+
+

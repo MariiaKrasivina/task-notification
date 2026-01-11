@@ -76,6 +76,7 @@ class TaskNotificationMessage(BaseModel):
     task_id: int
     event_type: str
     task_title: str
+    task_description: Optional[str] = None
     assignee: Optional[str] = None
     status: str
     priority: str

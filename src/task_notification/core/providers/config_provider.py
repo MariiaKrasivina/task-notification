@@ -12,3 +12,5 @@ class ConfigProvider(Provider):
             "url": settings.rabbitmq_url,
         }
 
+
+

@@ -29,14 +29,20 @@ class Settings(BaseSettings):
     RABBITMQ_QUEUE: str = "task.notifications"
     RABBITMQ_ROUTING_KEY: str = "task.notification"
 
-    # Redis
+    # Redis (только для ARQ worker)
     REDIS_HOST: str
     REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
+    REDIS_DB: int = 1  # Отдельная БД для ARQ
     REDIS_PASSWORD: str | None = None
 
-    # ARQ Settings
-    ARQ_QUEUE_NAME: str = "arq:task_notifications"
+    # SMTP Settings
+    SMTP_HOST: str = "mailhog"
+    SMTP_PORT: int = 1025
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM_EMAIL: str = "notifications@taskmanager.local"
+    SMTP_USE_TLS: bool = False
+    SMTP_START_TLS: bool = False
 
     @property
     def postgres_url(self) -> str:
@@ -52,16 +58,7 @@ class Settings(BaseSettings):
             f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/"
         )
 
-    @property
-    def redis_settings(self) -> dict:
-        """Настройки для ARQ."""
-        return {
-            "host": self.REDIS_HOST,
-            "port": self.REDIS_PORT,
-            "database": self.REDIS_DB,
-            "password": self.REDIS_PASSWORD,
-        }
-
-
 settings = Settings()
+
+
 

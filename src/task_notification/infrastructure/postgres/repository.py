@@ -179,3 +179,20 @@ class NotificationRepository:
         )
         result = await session.scalar(query)
         return result or 0
+
+    @log(logger)
+    async def get_pending_notifications(
+        self,
+        session: AsyncSession,
+        limit: int = 100,
+    ) -> list[NotificationSchema]:
+        """Получить pending уведомления для отправки."""
+        query = (
+            select(self._notifications_collection)
+            .where(self._notifications_collection.status == NotificationStatus.PENDING.value)
+            .order_by(self._notifications_collection.created_at.asc())
+            .limit(limit)
+        )
+        result = await session.execute(query)
+        notifications = result.scalars().all()
+        return [NotificationSchema.model_validate(n) for n in notifications]
