@@ -8,11 +8,15 @@ from task_notification.domain.metrics.use_case import GetNotificationsMetricsUse
 from task_notification.domain.use_cases.create_notification import CreateNotificationUseCase
 from task_notification.domain.use_cases.get_notification_by_id import GetNotificationByIdUseCase
 from task_notification.domain.use_cases.get_notifications import GetNotificationsUseCase
+from task_notification.domain.use_cases.register_telegram_user import RegisterTelegramUserUseCase
 from task_notification.domain.use_cases.send_pending_notifications import SendPendingNotificationsUseCase
 from task_notification.domain.use_cases.update_notification_status import UpdateNotificationStatusUseCase
 from task_notification.infrastructure.email.email_service import EmailService
 from task_notification.infrastructure.postgres.database import Database
-from task_notification.infrastructure.postgres.repository import NotificationRepository
+from task_notification.infrastructure.postgres.repository import (
+    NotificationRepository,
+    UserTelegramRepository,
+)
 
 
 # Config container для RabbitMQ
@@ -33,6 +37,10 @@ class RepositoryProvider(Provider):
     @provide
     def get_notification_repository(self) -> NotificationRepository:
         return NotificationRepository()
+
+    @provide
+    def get_user_telegram_repository(self) -> UserTelegramRepository:
+        return UserTelegramRepository()
 
 
 class ServiceProvider(Provider):
@@ -86,6 +94,14 @@ class UseCaseProvider(Provider):
         email_service: EmailService,
     ) -> SendPendingNotificationsUseCase:
         return SendPendingNotificationsUseCase(database, repository, email_service)
+
+    @provide
+    def get_register_telegram_user(
+        self,
+        database: Database,
+        repository: UserTelegramRepository,
+    ) -> RegisterTelegramUserUseCase:
+        return RegisterTelegramUserUseCase(database, repository)
 
 
 class MetricsProvider(Provider):
