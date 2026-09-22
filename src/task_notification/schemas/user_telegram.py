@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserTelegramCreate(BaseModel):
     """Данные для регистрации Telegram-пользователя."""
 
-    email: str = Field(min_length=3, max_length=255)
+    email: EmailStr = Field(max_length=255)
     telegram_id: int
     telegram_username: str | None = Field(default=None, max_length=255)
 
