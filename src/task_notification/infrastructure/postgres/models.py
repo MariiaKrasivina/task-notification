@@ -24,6 +24,12 @@ class Notification(Base):
     recipient: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    notification_channel: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="both",
+        server_default="both",
+    )
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

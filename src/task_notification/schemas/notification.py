@@ -13,6 +13,14 @@ class NotificationStatus(str, Enum):
     FAILED = "failed"
 
 
+class NotificationChannel(str, Enum):
+    """Канал доставки уведомления."""
+
+    EMAIL = "email"
+    TELEGRAM = "telegram"
+    BOTH = "both"
+
+
 class NotificationType(str, Enum):
     """Типы уведомлений."""
 
@@ -31,6 +39,7 @@ class BaseNotification(BaseModel):
     task_id: int
     recipient: str
     notification_type: NotificationType
+    notification_channel: NotificationChannel = NotificationChannel.BOTH
     title: str
     message: str
 
@@ -81,3 +90,4 @@ class TaskNotificationMessage(BaseModel):
     status: str
     priority: str
     created_by: str
+    notification_channel: NotificationChannel = NotificationChannel.BOTH

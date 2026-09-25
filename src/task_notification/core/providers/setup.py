@@ -1,5 +1,5 @@
 from typing import AsyncIterator
-
+from aiogram import Bot
 from dishka import Provider, Scope, make_async_container, make_container, provide
 
 from task_notification.core.config import settings
@@ -17,6 +17,7 @@ from task_notification.infrastructure.postgres.repository import (
     NotificationRepository,
     UserTelegramRepository,
 )
+from task_notification.infrastructure.telegram.notification_service import TelegramNotificationService
 
 
 # Config container для RabbitMQ
@@ -29,6 +30,18 @@ class InfrastructureProvider(Provider):
     @provide
     def get_database(self) -> Database:
         return Database(settings.postgres_url)
+
+    @provide
+    async def get_telegram_bot(self) -> AsyncIterator[Bot]:
+        if settings.TELEGRAM_BOT_TOKEN is None:
+            raise RuntimeError("Не указан токен Telegram-бота")
+
+        bot = Bot(token=settings.TELEGRAM_BOT_TOKEN.get_secret_value())
+
+        try:
+            yield bot
+        finally:
+            await bot.session.close()
 
 
 class RepositoryProvider(Provider):
@@ -49,6 +62,13 @@ class ServiceProvider(Provider):
     @provide
     def get_email_service(self) -> EmailService:
         return EmailService()
+
+    @provide
+    def get_telegram_notification_service(
+        self,
+        bot: Bot,
+    ) -> TelegramNotificationService:
+        return TelegramNotificationService(bot=bot)
 
 
 class UseCaseProvider(Provider):
