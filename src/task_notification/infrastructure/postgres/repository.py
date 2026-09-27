@@ -75,8 +75,7 @@ class NotificationRepository:
         session: AsyncSession,
         notification: CreateNotification,
     ) -> NotificationSchema:
-        values = notification.model_dump()
-        values["notification_type"] = notification.notification_type.value
+        values = notification.model_dump(mode="json")
         query = insert(self._notifications_collection).values(values).returning(self._notifications_collection)
         result = await session.scalar(query)
         await session.flush()

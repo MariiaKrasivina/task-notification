@@ -111,9 +111,17 @@ class UseCaseProvider(Provider):
         self,
         database: Database,
         repository: NotificationRepository,
+        user_telegram_repository: UserTelegramRepository,
         email_service: EmailService,
+        telegram_service: TelegramNotificationService,
     ) -> SendPendingNotificationsUseCase:
-        return SendPendingNotificationsUseCase(database, repository, email_service)
+        return SendPendingNotificationsUseCase(
+            database,
+            repository,
+            user_telegram_repository,
+            email_service,
+            telegram_service,
+        )
 
     @provide
     def get_register_telegram_user(

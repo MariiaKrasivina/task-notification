@@ -4,7 +4,11 @@ from typing import Optional
 from pydantic import BaseModel
 
 from task_notification.schemas.api.pagination import PaginationAwareRequest
-from task_notification.schemas.notification import NotificationStatus, NotificationType
+from task_notification.schemas.notification import (
+    NotificationChannel,
+    NotificationStatus,
+    NotificationType,
+)
 
 
 class NotificationsRequest(PaginationAwareRequest):
@@ -26,6 +30,7 @@ class NotificationResponse(BaseModel):
     task_id: int
     recipient: str
     notification_type: NotificationType
+    notification_channel: NotificationChannel
     title: str
     message: str
     status: NotificationStatus

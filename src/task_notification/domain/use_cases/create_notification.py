@@ -30,10 +30,12 @@ class CreateNotificationUseCase:
         message: TaskNotificationMessage,
     ) -> NotificationSchema:
         """Создать уведомление из события задачи."""
+        notification_type = NotificationType(f"task_{message.event_type}")
         notification = CreateNotification(
             task_id=message.task_id,
             recipient=message.assignee or "unknown",
-            notification_type=NotificationType.TASK_CREATED,
+            notification_type=notification_type,
+            notification_channel=message.notification_channel,
             title=f"Task event: {message.event_type}",
             message=message.model_dump_json(),
         )
