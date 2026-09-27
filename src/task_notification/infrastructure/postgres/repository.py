@@ -2,16 +2,24 @@ from datetime import datetime
 from typing import Type
 
 from sqlalchemy import and_, func, insert, or_, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from task_notification.core.exceptions.notifications import NotificationNotFoundException
 from task_notification.core.logger import get_logger, log
-from task_notification.infrastructure.postgres.models import Notification
+from task_notification.infrastructure.postgres.models import (
+    Notification,
+    UserTelegram,
+)
 from task_notification.schemas.notification import (
     CreateNotification,
     NotificationFilters,
     NotificationSchema,
     NotificationStatus,
+)
+from task_notification.schemas.user_telegram import (
+    UserTelegramCreate,
+    UserTelegramSchema,
 )
 
 logger = get_logger(__name__)
@@ -67,8 +75,7 @@ class NotificationRepository:
         session: AsyncSession,
         notification: CreateNotification,
     ) -> NotificationSchema:
-        values = notification.model_dump()
-        values["notification_type"] = notification.notification_type.value
+        values = notification.model_dump(mode="json")
         query = insert(self._notifications_collection).values(values).returning(self._notifications_collection)
         result = await session.scalar(query)
         await session.flush()
@@ -196,3 +203,57 @@ class NotificationRepository:
         result = await session.execute(query)
         notifications = result.scalars().all()
         return [NotificationSchema.model_validate(n) for n in notifications]
+
+
+class UserTelegramRepository:
+    """Репозиторий привязок пользователей к Telegram."""
+
+    _users_collection: Type[UserTelegram] = UserTelegram
+
+    @log(logger)
+    async def register_user(
+        self,
+        session: AsyncSession,
+        user: UserTelegramCreate,
+    ) -> UserTelegramSchema:
+        """Создать или обновить привязку пользователя."""
+
+        insert_statement = pg_insert(self._users_collection).values(user.model_dump())
+
+        query = (
+            insert_statement
+            .on_conflict_do_update(
+                index_elements=[self._users_collection.email],
+                set_={
+                    "telegram_id": insert_statement.excluded.telegram_id,
+                    "telegram_username": insert_statement.excluded.telegram_username,
+                },
+            )
+            .returning(self._users_collection)
+        )
+
+        result = await session.scalar(query)
+
+        return UserTelegramSchema.model_validate(result)
+
+    @log(logger)
+    async def get_user_by_email(
+        self,
+        session: AsyncSession,
+        email: str,
+    ) -> UserTelegramSchema | None:
+        """Найти Telegram-пользователя по email."""
+
+        normalized_email = email.strip().lower()
+
+        query = (
+            select(self._users_collection)
+            .where(self._users_collection.email == normalized_email)
+        )
+
+        result = await session.scalar(query)
+
+        if result is None:
+            return None
+
+        return UserTelegramSchema.model_validate(result)

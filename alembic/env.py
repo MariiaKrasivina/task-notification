@@ -8,7 +8,10 @@ from tenacity import before_sleep_log, retry, wait_exponential
 
 from task_notification.core.config import settings
 from task_notification.infrastructure.postgres.base import Base
-from task_notification.infrastructure.postgres.models import Notification  # noqa: F401
+from task_notification.infrastructure.postgres.models import (
+    Notification,
+    UserTelegram,
+)  # noqa: F401
 
 CREATE_SCHEMA_QUERY = f"CREATE SCHEMA IF NOT EXISTS {settings.POSTGRES_SCHEMA};"
 

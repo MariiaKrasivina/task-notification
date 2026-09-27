@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = False
     SMTP_START_TLS: bool = False
 
+    # Telegram
+    TELEGRAM_BOT_TOKEN: SecretStr | None = None
+    TELEGRAM_BOT_ENABLED: bool = False
+
     @property
     def postgres_url(self) -> str:
         return (

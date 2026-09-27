@@ -1,14 +1,23 @@
 """Use case для отправки pending уведомлений."""
 
-import json
-from typing import Optional
-
 from task_notification.core.exceptions.notifications import NotificationSendError
 from task_notification.core.logger import get_logger, log
 from task_notification.infrastructure.email.email_service import EmailService
 from task_notification.infrastructure.postgres.database import Database
-from task_notification.infrastructure.postgres.repository import NotificationRepository
-from task_notification.schemas.notification import NotificationSchema, NotificationStatus
+from task_notification.infrastructure.postgres.repository import (
+    NotificationRepository,
+    UserTelegramRepository,
+)
+from task_notification.infrastructure.telegram.notification_service import (
+    TelegramNotificationService,
+)
+from task_notification.schemas.notification import (
+    NotificationChannel,
+    NotificationSchema,
+    NotificationStatus,
+    TaskNotificationMessage,
+)
+
 
 logger = get_logger(__name__)
 
@@ -20,11 +29,15 @@ class SendPendingNotificationsUseCase:
         self,
         database: Database,
         repository: NotificationRepository,
+        user_telegram_repository: UserTelegramRepository,
         email_service: EmailService,
+        telegram_service: TelegramNotificationService,
     ):
         self._database = database
         self._repository = repository
+        self._user_telegram_repository = user_telegram_repository
         self._email_service = email_service
+        self._telegram_service = telegram_service
 
     @log(logger)
     async def execute(self) -> dict:
@@ -44,14 +57,14 @@ class SendPendingNotificationsUseCase:
         for notification in pending:
             try:
                 await self._send_notification(notification)
-                
+
                 async with self._database.session() as session:
                     await self._repository.update_notification_status(
                         session,
                         notification.id,
                         NotificationStatus.SENT,
                     )
-                
+
                 sent_count += 1
                 logger.info(f"Notification {notification.id} sent successfully")
 
@@ -74,27 +87,71 @@ class SendPendingNotificationsUseCase:
         logger.info(f"Sent {sent_count} notifications, {failed_count} failed")
         return {"sent": sent_count, "failed": failed_count}
 
-    async def _send_notification(self, notification: NotificationSchema) -> None:
+    async def _send_notification(
+        self,
+        notification: NotificationSchema,
+    ) -> None:
         """Отправить одно уведомление."""
-        try:
-            message_data = json.loads(notification.message)
-        except json.JSONDecodeError:
-            message_data = {}
+        message = TaskNotificationMessage.model_validate_json(notification.message)
 
-        task_title = message_data.get("task_title", "Unknown Task")
-        task_description = message_data.get("task_description", "No description provided")
-        event_type = message_data.get("event_type", notification.notification_type)
-        task_status = message_data.get("status")
-        task_priority = message_data.get("priority")
-        task_id = notification.task_id or 0
+        if notification.notification_channel in (
+            NotificationChannel.EMAIL,
+            NotificationChannel.BOTH,
+        ):
+            await self._send_email_notification(
+                notification=notification,
+                message=message,
+            )
 
+        if notification.notification_channel in (
+            NotificationChannel.TELEGRAM,
+            NotificationChannel.BOTH,
+        ):
+            await self._send_telegram_notification(
+                notification=notification,
+                message=message,
+            )
+
+    async def _send_email_notification(
+        self,
+        notification: NotificationSchema,
+        message: TaskNotificationMessage,
+    ) -> None:
+        """Отправить уведомление по email."""
         await self._email_service.send_task_notification(
             recipient=notification.recipient,
-            task_id=task_id,
-            task_title=task_title,
-            task_description=task_description,
-            event_type=event_type,
-            task_status=task_status,
-            task_priority=task_priority,
+            task_id=message.task_id,
+            task_title=message.task_title,
+            task_description=message.task_description,
+            event_type=message.event_type,
+            task_status=message.status,
+            task_priority=message.priority,
         )
 
+    async def _send_telegram_notification(
+        self,
+        notification: NotificationSchema,
+        message: TaskNotificationMessage,
+    ) -> None:
+        """Отправить уведомление по telegram."""
+        async with self._database.session() as session:
+            telegram_user = await self._user_telegram_repository.get_user_by_email(
+                session=session,
+                email=notification.recipient,
+            )
+
+        if telegram_user is None:
+            raise NotificationSendError(
+                notification_id=notification.id,
+                detail=f"Telegram не зарегистрирован для пользователя {notification.recipient}",
+            )
+
+        await self._telegram_service.send_task_notification(
+            telegram_id=telegram_user.telegram_id,
+            task_id=message.task_id,
+            task_title=message.task_title,
+            task_description=message.task_description,
+            event_type=message.event_type,
+            task_status=message.status,
+            task_priority=message.priority,
+        )
